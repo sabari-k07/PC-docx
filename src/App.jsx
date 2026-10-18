@@ -1,233 +1,253 @@
-import React, { useState, lazy, Suspense } from 'react';
-import { BuildProvider, useBuild } from './context/BuildContext';
-import { Navbar } from './components/Navbar';
-import { Footer } from './components/Footer';
-import { Toast } from './components/Toast';
-import { ComponentPickerDrawer } from './components/ComponentPickerDrawer';
-import { BudgetOptimizerModal } from './components/BudgetOptimizerModal';
-import { GlobalSearchModal } from './components/GlobalSearchModal';
-import { AIChatDrawer } from './components/AIChatDrawer';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Cpu, Sparkles, CheckCircle2, AlertCircle, Clock, ShieldCheck, Printer } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { FALLBACK_CATALOG } from './lib/mockCatalog';
+import { formatINR } from './lib/formatters';
+import { evaluateBuildCompatibility } from './engines/compatibility';
+import CopilotDrawer from './components/CopilotDrawer';
 import './App.css';
 
-// Route-Level Code Splitting (React.lazy)
-const LandingView = lazy(() => import('./views/LandingView').then(m => ({ default: m.LandingView })));
-const WizardView = lazy(() => import('./views/WizardView').then(m => ({ default: m.WizardView })));
-const RecommendedView = lazy(() => import('./views/RecommendedView').then(m => ({ default: m.RecommendedView })));
-const BuilderView = lazy(() => import('./views/BuilderView').then(m => ({ default: m.BuilderView })));
-const CompatibilityView = lazy(() => import('./views/CompatibilityView').then(m => ({ default: m.CompatibilityView })));
-const PerformanceView = lazy(() => import('./views/PerformanceView').then(m => ({ default: m.PerformanceView })));
-const CompareView = lazy(() => import('./views/CompareView').then(m => ({ default: m.CompareView })));
-const RoadmapView = lazy(() => import('./views/RoadmapView').then(m => ({ default: m.RoadmapView })));
-const ExploreView = lazy(() => import('./views/ExploreView').then(m => ({ default: m.ExploreView })));
-const SavedBuildsView = lazy(() => import('./views/SavedBuildsView').then(m => ({ default: m.SavedBuildsView })));
-const GuidesView = lazy(() => import('./views/GuidesView').then(m => ({ default: m.GuidesView })));
-const ReviewView = lazy(() => import('./views/ReviewView').then(m => ({ default: m.ReviewView })));
-const TasksView = lazy(() => import('./views/TasksView').then(m => ({ default: m.TasksView })));
-const AdminInventoryView = lazy(() => import('./views/AdminInventoryView').then(m => ({ default: m.AdminInventoryView })));
+const SLOTS = [
+  { key: 'cpu', label: '01. Processor (CPU)' },
+  { key: 'motherboard', label: '02. Motherboard' },
+  { key: 'ram', label: '03. Memory (RAM)' },
+  { key: 'gpu', label: '04. Graphics Card (GPU)' },
+  { key: 'case', label: '05. Chassis / Case' },
+  { key: 'psu', label: '06. Power Supply (PSU)' },
+];
 
-const ViewLoadingFallback = () => (
-  <div style={{
-    minHeight: '60vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '16px'
-  }}>
-    <div className="spinner" style={{
-      width: '32px',
-      height: '32px',
-      borderRadius: '50%',
-      border: '3px solid var(--border-subtle)',
-      borderTopColor: 'var(--accent-purple)',
-      animation: 'spin 0.8s linear infinite'
-    }} />
-    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading PC_DOCx workspace...</span>
-    <style>{`
-      @keyframes spin {
-        to { transform: rotate(360deg); }
+export default function App() {
+  const [catalog, setCatalog] = useState(FALLBACK_CATALOG);
+  const [activeSlot, setActiveSlot] = useState('cpu');
+  const [build, setBuild] = useState({
+    cpu: FALLBACK_CATALOG[0],
+    motherboard: FALLBACK_CATALOG[2],
+    ram: FALLBACK_CATALOG[4],
+    gpu: FALLBACK_CATALOG[5],
+    case: FALLBACK_CATALOG[7],
+    psu: FALLBACK_CATALOG[8],
+  });
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  // Fetch live catalog from Supabase public.equipment if configured
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    async function loadEquipment() {
+      try {
+        const { data, error } = await supabase.from('equipment').select('*');
+        if (!error && data && data.length > 0) {
+          setCatalog(data);
+        }
+      } catch (err) {
+        console.warn('Falling back to local catalog:', err);
       }
-    `}</style>
-  </div>
-);
-
-import { Sliders, X, Check } from 'lucide-react';
-
-const MainRouter = () => {
-  const { currentView, setCurrentView } = useBuild();
-  const [tweaksOpen, setTweaksOpen] = useState(false);
-
-  const screens = [
-    { id: 'landing', label: 'S1: Landing Page' },
-    { id: 'wizard', label: 'S2–S4: 3-Step Wizard' },
-    { id: 'recommended', label: 'S5: Recommended Build' },
-    { id: 'builder', label: 'S6: Main 3D Builder' },
-    { id: 'health', label: 'S8: Compatibility Health' },
-    { id: 'performance', label: 'S10–S11: Telemetry & AI' },
-    { id: 'compare', label: 'S12: Compare Builds' },
-    { id: 'roadmap', label: 'S13: 4-Year Roadmap' },
-    { id: 'explore', label: 'S14: Explore Community' },
-    { id: 'saved', label: 'S15: Saved Builds & Vault' },
-    { id: 'guides', label: 'S16: Knowledge Guides' },
-    { id: 'review', label: 'S18: BOM Review & Retailers' },
-    { id: 'tasks', label: 'Efficiency Tasks & Roadmap' },
-    { id: 'inventory', label: 'DB: Supabase Inventory & Stock' }
-  ];
-
-  const renderActiveView = () => {
-    switch (currentView) {
-      case 'landing':
-        return <LandingView />;
-      case 'wizard':
-        return <WizardView />;
-      case 'recommended':
-        return <RecommendedView />;
-      case 'builder':
-        return <BuilderView />;
-      case 'health':
-        return <CompatibilityView />;
-      case 'performance':
-        return <PerformanceView />;
-      case 'compare':
-        return <CompareView />;
-      case 'roadmap':
-        return <RoadmapView />;
-      case 'explore':
-        return <ExploreView />;
-      case 'saved':
-        return <SavedBuildsView />;
-      case 'guides':
-        return <GuidesView />;
-      case 'review':
-        return <ReviewView />;
-      case 'tasks':
-        return <TasksView />;
-      case 'inventory':
-        return <AdminInventoryView />;
-      default:
-        return <LandingView />;
     }
+    loadEquipment();
+  }, []);
+
+  const { checks, estimatedDraw, totalCost } = useMemo(
+    () => evaluateBuildCompatibility(build),
+    [build]
+  );
+
+  const filteredParts = catalog.filter((item) => item.category === activeSlot);
+
+  const handleSelectPart = (part) => {
+    setBuild((prev) => ({ ...prev, [activeSlot]: part }));
+  };
+
+  const handleFinalizeBOM = () => {
+    confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+    window.print();
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
-      {/* Sticky App Navigation */}
-      <Navbar />
+    <div className="app-shell">
+      {/* Top Bar */}
+      <header className="top-nav">
+        <div className="brand">
+          <Cpu size={18} />
+          <span>PC-docx</span>
+          <span className="badge">IN-Market v2.4</span>
+        </div>
 
-      {/* Main Active Page View */}
-      <main style={{ flex: 1 }}>
-        <Suspense fallback={<ViewLoadingFallback />}>
-          {renderActiveView()}
-        </Suspense>
-      </main>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button className="btn" onClick={handleFinalizeBOM}>
+            <Printer size={14} />
+            <span>Export BOM</span>
+          </button>
+          <button className="btn btn-primary" onClick={() => setCopilotOpen(true)}>
+            <Sparkles size={14} />
+            <span>AI Copilot</span>
+          </button>
+        </div>
+      </header>
 
-      {/* Global Modals & Drawers */}
-      <ComponentPickerDrawer />
-      <BudgetOptimizerModal />
-      <GlobalSearchModal />
-      <AIChatDrawer />
-      <Toast />
-
-      {/* Page Footer */}
-      <Footer />
-
-      {/* Tweaks & Screen Switcher Floating Trigger (Per SKILL.md specs) */}
-      <div style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        zIndex: 999
-      }}>
-        {tweaksOpen ? (
-          <div style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-default)',
-            borderRadius: '16px',
-            padding: '16px 20px',
-            width: '280px',
-            boxShadow: 'var(--shadow-lg), 0 0 24px rgba(124, 92, 255, 0.25)',
-            animation: 'fadeIn 180ms ease forwards'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Sliders size={14} color="var(--accent-purple)" />
-                <span>Screen Navigator</span>
-              </div>
-              <button onClick={() => setTweaksOpen(false)} className="btn-quiet" style={{ padding: '2px' }}>
-                <X size={16} />
+      {/* 3-Column High-Density Configurator */}
+      <div className="workspace">
+        {/* Left Column: Component Slots */}
+        <aside className="sidebar">
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 10px 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Hardware Stack
+          </div>
+          {SLOTS.map((slot) => {
+            const selected = build[slot.key];
+            return (
+              <button
+                key={slot.key}
+                className={`nav-item ${activeSlot === slot.key ? 'active' : ''}`}
+                onClick={() => setActiveSlot(slot.key)}
+              >
+                <div>
+                  <div>{slot.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {selected ? selected.name.slice(0, 24) + '...' : 'Unassigned'}
+                  </div>
+                </div>
+                {selected && (
+                  <span className="tabular" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {formatINR(selected.price_inr)}
+                  </span>
+                )}
               </button>
-            </div>
+            );
+          })}
+        </aside>
 
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-              Instant jump to any of the 20 specification screens:
+        {/* Center Column: Part Decision Canvas */}
+        <main className="main-canvas">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>
+                Select {SLOTS.find((s) => s.key === activeSlot)?.label.split('. ')[1]}
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4 }}>
+                GST-inclusive street pricing across PrimeABGB, MDComputers & Vedant.
+              </p>
             </div>
+            <span className="badge tabular">{filteredParts.length} SKUs Available</span>
+          </div>
 
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-              maxHeight: '260px',
-              overflowY: 'auto',
-              paddingRight: '4px'
-            }}>
-              {screens.map(s => (
+          <div className="part-grid">
+            {filteredParts.map((part) => {
+              const isSelected = build[activeSlot]?.id === part.id;
+              return (
                 <div
-                  key={s.id}
-                  onClick={() => {
-                    setCurrentView(s.id);
-                    setTweaksOpen(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  key={part.id}
+                  className={`part-card ${isSelected ? 'selected' : ''}`}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 500, fontSize: 14 }}>{part.name}</span>
+                      <span className="badge tabular" title="Efficiency Quotient (Perf per Watt & Rupee)">
+                        EQ {part.eq_score}
+                      </span>
+                    </div>
+
+                    {/* Specs & Indian Retailer Stock Pills */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                      {Object.entries(part.specs || {}).map(([k, v]) => (
+                        <span key={k} className="badge tabular">
+                          {k}: {Array.isArray(v) ? v.join('/') : v}
+                        </span>
+                      ))}
+                      {part.retailers &&
+                        Object.entries(part.retailers).map(([store, inStock]) => (
+                          <span
+                            key={store}
+                            className="badge"
+                            style={{
+                              borderColor: inStock ? 'rgba(16,185,129,0.3)' : 'var(--border-subtle)',
+                              color: inStock ? 'var(--status-ok)' : 'var(--text-muted)',
+                            }}
+                          >
+                            {store}: {inStock ? 'In Stock' : 'OOS'}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="tabular" style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>{formatINR(part.price_inr)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      {part.wattage > 0 ? `${part.wattage}W TDP` : 'Incl. 18% GST'}
+                    </div>
+                  </div>
+
+                  <button
+                    className={`btn ${isSelected ? 'btn-primary' : ''}`}
+                    onClick={() => handleSelectPart(part)}
+                  >
+                    {isSelected ? 'Selected' : 'Select'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+
+        {/* Right Column: Live Compatibility & Power Telemetry */}
+        <aside className="telemetry-panel">
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Estimated Street Total</div>
+            <div className="tabular" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', marginTop: 2 }}>
+              {formatINR(totalCost)}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Inclusive of 18% GST • Tabular BOM</div>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)' }} />
+
+          {/* 6-Layer Compatibility Matrix */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+              <ShieldCheck size={15} />
+              <span>Compatibility Health Matrix</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {checks.map((c) => (
+                <div
+                  key={c.layer}
                   style={{
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: currentView === s.id ? 600 : 400,
-                    color: currentView === s.id ? '#FFF' : 'var(--text-secondary)',
-                    background: currentView === s.id ? 'var(--bg-elevated)' : 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
+                    padding: '10px 12px',
+                    borderRadius: 6,
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border-subtle)',
                   }}
                 >
-                  <span>{s.label}</span>
-                  {currentView === s.id && <Check size={13} color="var(--accent-purple)" />}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 500 }}>
+                    <span>{c.layer}</span>
+                    {c.status === 'ok' && <CheckCircle2 size={14} color="var(--status-ok)" />}
+                    {c.status === 'error' && <AlertCircle size={14} color="var(--status-error)" />}
+                    {c.status === 'warn' && <AlertCircle size={14} color="var(--status-warn)" />}
+                    {c.status === 'pending' && <Clock size={14} color="var(--text-muted)" />}
+                  </div>
+                  <div className="tabular" style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    {c.detail}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setTweaksOpen(true)}
-            className="btn-quiet"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: '9999px',
-              padding: '8px 16px',
-              boxShadow: 'var(--shadow-md)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              fontWeight: 600
-            }}
-          >
-            <Sliders size={14} color="var(--accent-purple)" />
-            <span>Navigate Screens</span>
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
 
-export default function App() {
-  return (
-    <BuildProvider>
-      <MainRouter />
-    </BuildProvider>
+          {/* Thermal & Power Envelope Summary */}
+          <div style={{ marginTop: 'auto', padding: 12, borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Estimated System Draw</span>
+              <span className="tabular" style={{ fontWeight: 600 }}>{estimatedDraw}W</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Gemini + Supabase Edge Function AI Drawer */}
+      <CopilotDrawer
+        isOpen={copilotOpen}
+        onClose={() => setCopilotOpen(false)}
+        currentBuild={build}
+      />
+    </div>
   );
 }
