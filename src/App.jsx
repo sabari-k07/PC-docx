@@ -6,6 +6,7 @@ import { Toast } from './components/Toast';
 import { ComponentPickerDrawer } from './components/ComponentPickerDrawer';
 import { BudgetOptimizerModal } from './components/BudgetOptimizerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { AIChatDrawer } from './components/AIChatDrawer';
 
 // Views
 import { LandingView } from './views/LandingView';
@@ -95,6 +96,7 @@ const MainRouter = () => {
       <ComponentPickerDrawer />
       <BudgetOptimizerModal />
       <GlobalSearchModal />
+      <AIChatDrawer />
       <Toast />
 
       {/* Page Footer */}

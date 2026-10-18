@@ -9,6 +9,7 @@ export const Navbar = () => {
     setCurrentView,
     savedBuilds,
     setIsSearchOpen,
+    setIsChatOpen,
     isAdvancedMode,
     setIsAdvancedMode,
     compReport,
@@ -143,6 +144,29 @@ export const Navbar = () => {
           >
             <Search size={16} />
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }} className="search-hotkey">⌘K</span>
+          </button>
+
+          {/* AI Advisor Chatbot Trigger */}
+          <button
+            onClick={() => setIsChatOpen(true)}
+            className="btn-quiet"
+            title="PC_DOCx AI Hardware Advisor"
+            style={{
+              border: '1px solid rgba(124, 92, 255, 0.4)',
+              background: 'rgba(124, 92, 255, 0.1)',
+              color: 'var(--accent-purple-text)',
+              padding: '6px 13px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 600,
+              fontSize: '13px',
+              boxShadow: '0 0 12px rgba(124, 92, 255, 0.15)'
+            }}
+          >
+            <Sparkles size={15} color="var(--accent-purple)" />
+            <span className="hide-on-mobile">AI Advisor</span>
           </button>
 
           {/* Health Status Quick Indicator */}

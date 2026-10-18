@@ -79,6 +79,7 @@ export const BuildProvider = ({ children }) => {
   const [pickerCategory, setPickerCategory] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
 
@@ -384,6 +385,8 @@ export const BuildProvider = ({ children }) => {
         setIsSearchOpen,
         isOptimizerOpen,
         setIsOptimizerOpen,
+        isChatOpen,
+        setIsChatOpen,
         toastMessage,
         showToast,
         isAdvancedMode,
