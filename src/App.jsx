@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { BuildProvider, useBuild } from './context/BuildContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -8,21 +8,47 @@ import { BudgetOptimizerModal } from './components/BudgetOptimizerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { AIChatDrawer } from './components/AIChatDrawer';
 
-// Views
-import { LandingView } from './views/LandingView';
-import { WizardView } from './views/WizardView';
-import { RecommendedView } from './views/RecommendedView';
-import { BuilderView } from './views/BuilderView';
-import { CompatibilityView } from './views/CompatibilityView';
-import { PerformanceView } from './views/PerformanceView';
-import { CompareView } from './views/CompareView';
-import { RoadmapView } from './views/RoadmapView';
-import { ExploreView } from './views/ExploreView';
-import { SavedBuildsView } from './views/SavedBuildsView';
-import { GuidesView } from './views/GuidesView';
-import { ReviewView } from './views/ReviewView';
-import { TasksView } from './views/TasksView';
-import { AdminInventoryView } from './views/AdminInventoryView';
+// Route-Level Code Splitting (React.lazy)
+const LandingView = lazy(() => import('./views/LandingView').then(m => ({ default: m.LandingView })));
+const WizardView = lazy(() => import('./views/WizardView').then(m => ({ default: m.WizardView })));
+const RecommendedView = lazy(() => import('./views/RecommendedView').then(m => ({ default: m.RecommendedView })));
+const BuilderView = lazy(() => import('./views/BuilderView').then(m => ({ default: m.BuilderView })));
+const CompatibilityView = lazy(() => import('./views/CompatibilityView').then(m => ({ default: m.CompatibilityView })));
+const PerformanceView = lazy(() => import('./views/PerformanceView').then(m => ({ default: m.PerformanceView })));
+const CompareView = lazy(() => import('./views/CompareView').then(m => ({ default: m.CompareView })));
+const RoadmapView = lazy(() => import('./views/RoadmapView').then(m => ({ default: m.RoadmapView })));
+const ExploreView = lazy(() => import('./views/ExploreView').then(m => ({ default: m.ExploreView })));
+const SavedBuildsView = lazy(() => import('./views/SavedBuildsView').then(m => ({ default: m.SavedBuildsView })));
+const GuidesView = lazy(() => import('./views/GuidesView').then(m => ({ default: m.GuidesView })));
+const ReviewView = lazy(() => import('./views/ReviewView').then(m => ({ default: m.ReviewView })));
+const TasksView = lazy(() => import('./views/TasksView').then(m => ({ default: m.TasksView })));
+const AdminInventoryView = lazy(() => import('./views/AdminInventoryView').then(m => ({ default: m.AdminInventoryView })));
+
+const ViewLoadingFallback = () => (
+  <div style={{
+    minHeight: '60vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '16px'
+  }}>
+    <div className="spinner" style={{
+      width: '32px',
+      height: '32px',
+      borderRadius: '50%',
+      border: '3px solid var(--border-subtle)',
+      borderTopColor: 'var(--accent-purple)',
+      animation: 'spin 0.8s linear infinite'
+    }} />
+    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading PC_DOCx workspace...</span>
+    <style>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
 
 import { Sliders, X, Check } from 'lucide-react';
 
@@ -89,7 +115,9 @@ const MainRouter = () => {
 
       {/* Main Active Page View */}
       <main style={{ flex: 1 }}>
-        {renderActiveView()}
+        <Suspense fallback={<ViewLoadingFallback />}>
+          {renderActiveView()}
+        </Suspense>
       </main>
 
       {/* Global Modals & Drawers */}

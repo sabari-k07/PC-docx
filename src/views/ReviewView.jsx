@@ -27,6 +27,68 @@ export const ReviewView = () => {
   } = useBuild();
 
   const [retailerModalOpen, setRetailerModalOpen] = useState(false);
+  const [assemblySteps, setAssemblySteps] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pc_docx_assembly_steps');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      { id: 'step-1', title: '1. Pre-Build Bench Test (Breadboarding)', desc: 'Place motherboard on its cardboard box. Install CPU, RAM, and cooler; jump power pins with screwdriver to verify POST before case installation.', done: false },
+      { id: 'step-2', title: '2. Peel Off Cooler Base Plastic Film', desc: 'CRITICAL: Remove transparent warning peel from the cooler copper plate before applying thermal paste to prevent instant 95°C thermal throttling.', done: false },
+      { id: 'step-3', title: '3. Dual-Channel RAM Seating in Slots A2 & B2', desc: 'Populate slots 2 and 4 (counting from CPU). Press firmly until dual latches click into place to ensure full 6000MHz DDR5 bandwidth.', done: false },
+      { id: 'step-4', title: '4. Case Standoff Alignment & I/O Shield', desc: 'Count brass standoffs inside cabinet to precisely match motherboard screw holes. Avoid stray standoffs that cause electrical short circuits.', done: false },
+      { id: 'step-5', title: '5. Pre-Route 8-Pin CPU EPS Power Cable', desc: 'Thread 8-pin EPS cable through the top-left case grommet BEFORE mounting top exhaust fans or AIO radiator, avoiding cramped clearances.', done: false },
+      { id: 'step-6', title: '6. Dedicated PCIe Power Cables for GPU', desc: 'Run separate, dedicated 8-pin PCIe cables from PSU to graphics card. Never daisy-chain pigtails for high-transient 200W+ graphics cards.', done: false },
+      { id: 'step-7', title: '7. Enable AMD EXPO / Intel XMP in BIOS', desc: 'Power on, press DEL/F2 to enter UEFI BIOS. Turn on EXPO profile to unlock advertised 6000MHz speed (default is 4800MHz JEDEC).', done: false }
+    ];
+  });
+
+  const toggleAssemblyStep = (id) => {
+    setAssemblySteps(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, done: !s.done } : s);
+      try {
+        localStorage.setItem('pc_docx_assembly_steps', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const completedStepsCount = assemblySteps.filter(s => s.done).length;
+
+  const handleExportReddit = () => {
+    let md = `**PC_DOCx Specification — ${build.name} (Budget: ₹${(build.targetBudget || 100000).toLocaleString('en-IN')})**\n\n`;
+    md += `| Component | Selected Part | Verified Price (INR) |\n|---|---|---|\n`;
+    Object.entries(build.components).forEach(([cat, item]) => {
+      if (item) {
+        md += `| **${cat.toUpperCase()}** | ${item.name} | ₹${item.price.toLocaleString('en-IN')} |\n`;
+      }
+    });
+    md += `| **TOTAL** | **GST Inclusive** | **₹${currentTotal.toLocaleString('en-IN')}** |\n\n`;
+    md += `*Estimated Peak Draw: ${currentPower}W · Build Health: ${compReport?.healthScore || 94}/100*\n`;
+    md += `*Generated via PC_DOCx (India)*`;
+
+    navigator.clipboard?.writeText(md);
+    showToast("Copied Reddit Markdown Table for r/IndianGaming!");
+  };
+
+  const handleExportWhatsApp = () => {
+    let wa = `🖥️ *${build.name}* — PC_DOCx Build\n`;
+    wa += `💰 *Total Cost:* ₹${currentTotal.toLocaleString('en-IN')}\n`;
+    wa += `⚡ *Power Envelope:* ${currentPower}W\n`;
+    wa += `🛡️ *Health Score:* ${compReport?.healthScore || 94}/100\n\n`;
+    wa += `*Components List:*\n`;
+    Object.entries(build.components).forEach(([cat, item]) => {
+      if (item) {
+        wa += `• *${cat.toUpperCase()}:* ${item.name} (₹${item.price.toLocaleString('en-IN')})\n`;
+      }
+    });
+    wa += `\nVerified for Indian market pricing & warranty.`;
+
+    navigator.clipboard?.writeText(wa);
+    showToast("Copied WhatsApp format to clipboard!");
+  };
 
   const components = build.components;
   const partsList = [
@@ -84,12 +146,18 @@ export const ReviewView = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button onClick={handleExportReddit} className="btn-secondary" title="Copy formatted Reddit Markdown for r/IndianGaming">
+              <Share2 size={14} color="#FF4500" /> Reddit Spec
+            </button>
+            <button onClick={handleExportWhatsApp} className="btn-secondary" title="Copy clean WhatsApp text for groups">
+              <Share2 size={14} color="#25D366" /> WhatsApp
+            </button>
             <button onClick={handlePrint} className="btn-secondary">
-              <Printer size={15} /> Print Spec
+              <Printer size={15} /> Print
             </button>
             <button onClick={handleExportJson} className="btn-secondary">
-              <FileDown size={15} /> Export JSON
+              <FileDown size={15} /> JSON
             </button>
           </div>
         </div>
@@ -205,6 +273,91 @@ export const ReviewView = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* 7-Step Physical Assembly Checklist */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-default)',
+          borderRadius: '20px',
+          padding: '28px 32px',
+          marginBottom: '36px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="badge badge-purple" style={{ fontSize: '11px' }}>
+                  STEP-BY-STEP WORKBENCH GUIDE
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {completedStepsCount} of {assemblySteps.length} Steps Completed ({Math.round((completedStepsCount / assemblySteps.length) * 100)}%)
+                </span>
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#FFF', marginTop: '6px' }}>
+                7-Step First-Time Physical Assembly Checklist
+              </h3>
+            </div>
+
+            {/* Progress Bar */}
+            <div style={{ width: '160px', height: '6px', background: 'var(--bg-elevated)', borderRadius: '9999px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${(completedStepsCount / assemblySteps.length) * 100}%`,
+                background: completedStepsCount === assemblySteps.length ? 'var(--status-success)' : 'var(--accent-gradient)',
+                transition: 'width 240ms ease'
+              }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {assemblySteps.map((step) => (
+              <div
+                key={step.id}
+                onClick={() => toggleAssemblyStep(step.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '14px',
+                  padding: '14px 18px',
+                  borderRadius: '12px',
+                  background: step.done ? 'rgba(53, 208, 127, 0.05)' : 'var(--bg-surface)',
+                  border: step.done ? '1px solid rgba(53, 208, 127, 0.25)' : '1px solid var(--border-subtle)',
+                  cursor: 'pointer',
+                  transition: 'all 160ms ease'
+                }}
+              >
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '6px',
+                  border: step.done ? '1px solid var(--status-success)' : '1px solid var(--border-default)',
+                  background: step.done ? 'var(--status-success)' : 'var(--bg-card)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#08090C',
+                  marginTop: '2px',
+                  flexShrink: 0
+                }}>
+                  {step.done && <Check size={14} strokeWidth={3} />}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: step.done ? 'var(--status-success)' : '#FFF',
+                    textDecoration: step.done ? 'line-through' : 'none'
+                  }}>
+                    {step.title}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: '1.5' }}>
+                    {step.desc}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* "Why This Build?" Editorial Box */}

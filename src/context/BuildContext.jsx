@@ -238,6 +238,43 @@ export const BuildProvider = ({ children }) => {
       detail: 'Motherboard shipping with latest AGESA/firmware with native support for the selected processor.'
     });
 
+    // 7. CPU ↔ GPU Bottleneck Balance Engine
+    if (cpu && gpu) {
+      const cpuPrice = cpu.price || 1;
+      const gpuPrice = gpu.price || 1;
+      const cpuPerf = cpu.perfScore || 80;
+      const gpuPerf = gpu.perfScore || 85;
+      const priceRatio = gpuPrice / cpuPrice;
+
+      if (priceRatio > 4.2 || (gpuPerf - cpuPerf > 24)) {
+        health -= 8;
+        checks.push({
+          id: 'cpu-gpu-bottleneck',
+          title: 'CPU ↔ GPU Bottleneck Imbalance',
+          status: 'CPU Bottleneck Risk',
+          type: 'warning',
+          detail: `Your ${gpu.name} (${FORMAT_INR(gpuPrice)}) is paired with an entry CPU (${cpu.name}). At 1080p/1440p high refresh, the CPU may limit frame pacing. Consider stepping up processor tier or balancing GPU funds.`
+        });
+      } else if (priceRatio < 0.85 && gpuPrice < 35000 && cpuPrice > 35000) {
+        health -= 6;
+        checks.push({
+          id: 'cpu-gpu-bottleneck',
+          title: 'GPU Underpowered for CPU Tier',
+          status: 'GPU Allocation Warning',
+          type: 'warning',
+          detail: `High-end processor (${cpu.name}) is paired with an entry GPU (${gpu.name}). For gaming priorities, reallocating ~₹10,000 from CPU to GPU yields 35%+ more gaming FPS.`
+        });
+      } else {
+        checks.push({
+          id: 'cpu-gpu-bottleneck',
+          title: 'CPU ↔ GPU Architectural Balance',
+          status: 'Zero Bottleneck (< 3%)',
+          type: 'success',
+          detail: `${cpu.name} and ${gpu.name} form an optimal tier partnership with balanced frame delivery and minimal thermal waste.`
+        });
+      }
+    }
+
     return {
       checks,
       healthScore: Math.max(health, 20),

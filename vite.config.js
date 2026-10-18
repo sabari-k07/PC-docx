@@ -9,5 +9,18 @@ export default defineConfig({
     watch: {
       ignored: ['**/*.zip', '**/.git/**']
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-confetti': ['canvas-confetti']
+        }
+      }
+    }
   }
 });

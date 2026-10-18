@@ -1,0 +1,17 @@
+{
+  "name": "PC_DOCx — Indian PC Configurator",
+  "short_name": "PC_DOCx",
+  "description": "India's intelligent, calm, and precise PC builder configurator with offline market BOM reference.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090C",
+  "theme_color": "#7C5CFF",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

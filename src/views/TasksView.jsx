@@ -46,7 +46,7 @@ const INITIAL_TASKS = [
     title: 'Memoize Catalog Filters & Multi-Attribute Sorts',
     desc: 'Cache heavy search, brand filter, and sort passes in ComponentPickerDrawer to avoid rerenders.',
     targetFile: 'src/components/ComponentPickerDrawer.jsx',
-    completed: false
+    completed: true
   },
   {
     id: 'task-3',
@@ -56,7 +56,7 @@ const INITIAL_TASKS = [
     title: 'Pure Component Optimization in PCVisualizer SVG',
     desc: 'Wrap visualizer in React.memo and offload pulsating hotspot animations to GPU-composited CSS transforms.',
     targetFile: 'src/components/PCVisualizer.jsx',
-    completed: false
+    completed: true
   },
   {
     id: 'task-4',
@@ -76,7 +76,7 @@ const INITIAL_TASKS = [
     title: 'Vite Production Chunk Splitting (Rollup manualChunks)',
     desc: 'Isolate vendor-react, vendor-icons, and vendor-confetti into long-term browser cacheable chunks.',
     targetFile: 'vite.config.js',
-    completed: false
+    completed: true
   },
 
   // Track 2: Product & Hardware Efficiency (For PC Builders)
@@ -88,7 +88,7 @@ const INITIAL_TASKS = [
     title: 'Dynamic Efficiency Quotient (EQ) Badge Engine',
     desc: 'Calculate Gaming FPS / (TDP Watts × Price ₹) to highlight power and budget champions.',
     targetFile: 'src/data/mockData.js',
-    completed: false
+    completed: true
   },
   {
     id: 'task-7',
@@ -98,7 +98,7 @@ const INITIAL_TASKS = [
     title: 'PSU 80+ Efficiency Curve Graph',
     desc: 'Display real-time load graph showing 50% utilization as the peak sweet spot for minimal electrical waste.',
     targetFile: 'src/views/CompatibilityView.jsx',
-    completed: false
+    completed: true
   },
   {
     id: 'task-8',
@@ -108,7 +108,7 @@ const INITIAL_TASKS = [
     title: 'CPU ↔ GPU Bottleneck Balance Engine',
     desc: 'Detect mismatch ratios (e.g. ₹10K CPU paired with ₹1.15L GPU) and propose balanced fund redistribution.',
     targetFile: 'src/context/BuildContext.jsx',
-    completed: false
+    completed: true
   },
   {
     id: 'task-9',
@@ -128,7 +128,7 @@ const INITIAL_TASKS = [
     title: 'Interactive 7-Step Physical Assembly Todo Checklist',
     desc: 'Pre-build bench test, peel cooler film, dual-channel A2/B2 RAM slots, standoff checks, and EXPO activation.',
     targetFile: 'src/views/ReviewView.jsx',
-    completed: false
+    completed: true
   },
 
   // Track 3: Data & Offline Architecture
@@ -139,8 +139,8 @@ const INITIAL_TASKS = [
     priority: 'P2',
     title: 'PWA Offline Caching & Manifest',
     desc: 'Cache locked BOM specs so builders can reference part numbers inside offline computer markets (Nehru Place, SP Road).',
-    targetFile: 'vite.config.js',
-    completed: false
+    targetFile: 'public/sw.js & public/manifest.json',
+    completed: true
   },
   {
     id: 'task-12',

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import { useBuild } from '../context/BuildContext';
 import { ZoomIn, ZoomOut, RotateCcw, Box, Eye, Sparkles } from 'lucide-react';
 import { FORMAT_INR } from '../data/mockData';
 
-export const PCVisualizer = ({ compact = false, selectedCategory, onSelectCategory }) => {
+const PCVisualizerComponent = ({ compact = false, selectedCategory, onSelectCategory }) => {
   const { build, setPickerCategory } = useBuild();
   const [viewMode, setViewMode] = useState('exploded'); // 'front' | 'side' | 'exploded'
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -516,15 +516,17 @@ export const PCVisualizer = ({ compact = false, selectedCategory, onSelectCatego
                   zIndex: 20
                 }}
               >
-                {/* Outer pulsating ring for active hotspot or GPU */}
+                {/* Outer pulsating ring for active hotspot or GPU with GPU-composited CSS transforms */}
                 {(isGpu || isSelected) && (
                   <div
-                    className="pulsing-dot"
+                    className="gpu-pulsing-hotspot"
                     style={{
                       position: 'absolute',
                       inset: '-6px',
                       borderRadius: '50%',
-                      background: isSelected ? 'rgba(124, 92, 255, 0.5)' : 'rgba(124, 92, 255, 0.3)'
+                      background: isSelected ? 'rgba(124, 92, 255, 0.45)' : 'rgba(124, 92, 255, 0.25)',
+                      willChange: 'transform, opacity',
+                      pointerEvents: 'none'
                     }}
                   />
                 )}
@@ -639,3 +641,5 @@ export const PCVisualizer = ({ compact = false, selectedCategory, onSelectCatego
     </div>
   );
 };
+
+export const PCVisualizer = memo(PCVisualizerComponent);

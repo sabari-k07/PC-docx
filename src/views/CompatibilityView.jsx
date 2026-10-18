@@ -148,7 +148,7 @@ export const CompatibilityView = () => {
           {/* Right Column: Advisory Action Panel */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* PSU Headroom Advisory Box */}
+            {/* PSU Headroom & 80+ Efficiency Curve Graph */}
             <div style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-default)',
@@ -159,44 +159,137 @@ export const CompatibilityView = () => {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                color: 'var(--status-warning)',
-                marginBottom: '12px'
+                justifyContent: 'space-between',
+                marginBottom: '14px'
               }}>
-                <AlertTriangle size={18} />
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#FFF' }}>
-                  PSU Headroom Advisory
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-blue)' }}>
+                  <Zap size={18} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#FFF' }}>
+                    PSU 80+ Efficiency Curve
+                  </h3>
+                </div>
+                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'rgba(77, 163, 255, 0.12)', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                  {build?.components?.psu?.rating || '80+ Bronze'}
+                </span>
               </div>
 
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '16px' }}>
-                Your selected Corsair CX650 unit provides 650W. With your estimated peak system draw at <strong style={{ color: '#FFF' }}>{currentPower}W</strong> (67% capacity), the system will boot and run reliably. However, future GPU upgrades or heavy transient bursts will benefit from 750W.
-              </p>
+              {/* Real-time Load Metrics Banner */}
+              {(() => {
+                const psuWatt = build?.components?.psu?.wattage || 650;
+                const loadPct = Math.min(100, Math.round((currentPower / psuWatt) * 100));
+                const isGold = (build?.components?.psu?.rating || '').toLowerCase().includes('gold');
+                // Estimated efficiency based on load
+                const eff = isGold
+                  ? (loadPct <= 50 ? 87 + (loadPct / 50) * 3.5 : 90.5 - ((loadPct - 50) / 50) * 3.5)
+                  : (loadPct <= 50 ? 82 + (loadPct / 50) * 3.2 : 85.2 - ((loadPct - 50) / 50) * 3.8);
+                const wallDraw = Math.round(currentPower / (eff / 100));
+                const wasteWatts = wallDraw - currentPower;
+                const markerX = 30 + (loadPct / 100) * 300;
+                const markerY = 135 - ((eff - 75) / 20) * 105;
 
-              <div style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '12px',
-                padding: '14px',
-                marginBottom: '20px',
-                fontSize: '12px'
-              }}>
-                <div style={{ color: 'var(--text-muted)' }}>Recommendation:</div>
-                <div style={{ fontWeight: 600, color: '#FFF', marginTop: '2px' }}>
-                  Corsair RM750e 750W 80+ Gold Fully Modular (+₹5,100)
-                </div>
-                <div style={{ color: 'var(--status-success)', marginTop: '4px' }}>
-                  ✓ ATX 3.0 certified with native 12V-2x6 power cabling
-                </div>
-              </div>
+                return (
+                  <div>
+                    {/* SVG Efficiency Graph */}
+                    <div style={{ background: 'var(--bg-surface)', borderRadius: '12px', padding: '12px 10px', border: '1px solid var(--border-subtle)', marginBottom: '14px' }}>
+                      <svg viewBox="0 0 350 160" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                        {/* Grid lines */}
+                        <line x1="30" y1="135" x2="330" y2="135" stroke="var(--border-default)" strokeWidth="1" />
+                        <line x1="30" y1="85" x2="330" y2="85" stroke="var(--border-subtle)" strokeDasharray="3,3" strokeWidth="1" />
+                        <line x1="30" y1="35" x2="330" y2="35" stroke="var(--border-subtle)" strokeDasharray="3,3" strokeWidth="1" />
 
-              <button
-                onClick={handleFixPsuAutomatically}
-                className="btn-primary"
-                style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '14px' }}
-              >
-                <Wrench size={16} /> Fix Automatically
-              </button>
+                        {/* Y-axis labels */}
+                        <text x="24" y="138" fill="var(--text-faint)" fontSize="9" textAnchor="end">75%</text>
+                        <text x="24" y="88" fill="var(--text-faint)" fontSize="9" textAnchor="end">85%</text>
+                        <text x="24" y="38" fill="var(--text-faint)" fontSize="9" textAnchor="end">94%</text>
+
+                        {/* 50% Peak Guide Line */}
+                        <line x1="180" y1="20" x2="180" y2="135" stroke="rgba(124, 92, 255, 0.4)" strokeDasharray="2,2" strokeWidth="1" />
+                        <text x="180" y="15" fill="var(--accent-purple-text)" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                          50% Peak Efficiency Sweet Spot
+                        </text>
+
+                        {/* 80+ Gold Standard Curve */}
+                        <path
+                          d="M 30,122 C 80,68 140,42 180,42 C 240,42 290,66 330,76"
+                          fill="none"
+                          stroke={isGold ? "var(--status-success)" : "rgba(255, 255, 255, 0.2)"}
+                          strokeWidth={isGold ? "2.5" : "1"}
+                          strokeDasharray={isGold ? "none" : "2,2"}
+                        />
+
+                        {/* 80+ Bronze Standard Curve */}
+                        <path
+                          d="M 30,130 C 80,95 140,82 180,82 C 240,82 290,95 330,105"
+                          fill="none"
+                          stroke={!isGold ? "#FFB84D" : "rgba(255, 255, 255, 0.15)"}
+                          strokeWidth={!isGold ? "2.5" : "1"}
+                        />
+
+                        {/* Current System Load Dot & Pulse */}
+                        <line x1={markerX} y1={markerY} x2={markerX} y2="135" stroke="var(--accent-blue)" strokeDasharray="2,2" strokeWidth="1" />
+                        <circle cx={markerX} cy={markerY} r="7" fill="rgba(77, 163, 255, 0.3)" />
+                        <circle cx={markerX} cy={markerY} r="4" fill="var(--accent-blue)" stroke="#FFF" strokeWidth="1.5" />
+
+                        {/* X-axis labels */}
+                        <text x="30" y="148" fill="var(--text-faint)" fontSize="9" textAnchor="middle">0%</text>
+                        <text x="90" y="148" fill="var(--text-faint)" fontSize="9" textAnchor="middle">20%</text>
+                        <text x="180" y="148" fill="var(--accent-purple-text)" fontSize="9" fontWeight="700" textAnchor="middle">50%</text>
+                        <text x="255" y="148" fill="var(--text-faint)" fontSize="9" textAnchor="middle">75%</text>
+                        <text x="330" y="148" fill="var(--text-faint)" fontSize="9" textAnchor="middle">100%</text>
+                      </svg>
+                    </div>
+
+                    {/* Telemetry Breakdown Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                      <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Current Load</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFF' }}>
+                          {loadPct}% <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400 }}>({currentPower}W / {psuWatt}W)</span>
+                        </div>
+                      </div>
+                      <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Electrical Efficiency</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--status-success)' }}>
+                          ~{eff.toFixed(1)}% <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 400 }}>(Wall: ~{wallDraw}W)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+                      Operating at <strong style={{ color: '#FFF' }}>{loadPct}% load</strong> generates ~{wasteWatts}W in thermal dissipation. Modern power supplies run with maximum acoustic silence and minimal power bill waste near the 50% utilization mark.
+                    </div>
+
+                    {loadPct > 65 && (
+                      <div style={{
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        marginBottom: '16px',
+                        fontSize: '12px'
+                      }}>
+                        <div style={{ color: 'var(--text-muted)' }}>Efficiency Upgrade Recommendation:</div>
+                        <div style={{ fontWeight: 600, color: '#FFF', marginTop: '2px' }}>
+                          Corsair RM750e 750W 80+ Gold Fully Modular (+₹5,100)
+                        </div>
+                        <div style={{ color: 'var(--status-success)', marginTop: '4px', fontSize: '11px' }}>
+                          ✓ Shifter: Drops load to 58%, hitting peak 90.5% electrical conversion.
+                        </div>
+                      </div>
+                    )}
+
+                    {loadPct > 65 && (
+                      <button
+                        onClick={handleFixPsuAutomatically}
+                        className="btn-primary"
+                        style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: '13px' }}
+                      >
+                        <Wrench size={15} /> Fix Automatically (Upgrade to 750W Gold)
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Back to Builder */}
