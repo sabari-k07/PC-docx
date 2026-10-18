@@ -263,6 +263,7 @@ export const ComponentPickerDrawer = () => {
               const priceDelta = item.price - (currentPart?.price || 0);
               const newTotalIfSelected = currentTotal + priceDelta;
               const isOverBudget = newTotalIfSelected > targetBudget;
+              const eq = calculateComponentEQ(item, pickerCategory);
 
               return (
                 <div
@@ -294,6 +295,23 @@ export const ComponentPickerDrawer = () => {
                             <Sparkles size={11} /> {item.badge}
                           </span>
                         )}
+                        <span
+                          title={`Efficiency Quotient: ${eq.label} (Score: ${eq.score}/10)`}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: 'rgba(124, 92, 255, 0.1)',
+                            color: eq.badgeColor,
+                            border: '1px solid rgba(124, 92, 255, 0.25)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                        >
+                          <Zap size={11} /> EQ {eq.score} · {eq.grade}
+                        </span>
                         {isSelected && (
                           <span className="badge badge-success">
                             ✓ Currently Active

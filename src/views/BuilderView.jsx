@@ -159,33 +159,61 @@ export const BuilderView = () => {
   const ramStoragePct = Math.round((ramStoragePrice / safeTotal) * 100);
   const othersPct = Math.max(0, 100 - (gpuPct + cpuPct + moboPct + ramStoragePct));
 
+  // Dynamic Telemetry & Clearance math
+  const cpu = components.cpu;
+  const mobo = components.motherboard;
+  const gpu = components.gpu;
+  const ram = components.ram;
+  const psu = components.psu;
+  const pcCase = components.case;
+  const cooler = components.cooler;
+
+  const psuWatt = psu?.wattage || 650;
+  const psuLoadPct = Math.round((currentPower / psuWatt) * 100);
+  const gpuLen = gpu?.lengthMm || 242;
+  const maxGpu = pcCase?.maxGpuLength || 370;
+  const gpuMargin = maxGpu - gpuLen;
+  const coolerH = cooler?.heightMm || 155;
+  const maxCooler = pcCase?.maxCoolerHeight || 163;
+  const coolerMargin = maxCooler - coolerH;
+  const socketMatch = cpu && mobo ? cpu.socket === mobo.socket : true;
+  const ramMatch = ram && mobo ? (ram.type === mobo.ramType || !ram.type) : true;
+
   // Beginner vs Advanced Plain English Checklist
   const compatibilityChecks = !isAdvancedMode ? [
     {
-      ok: true,
-      label: 'Processor fits Motherboard',
-      desc: 'AMD AM5 socket matches Ryzen 5 7600 natively with zero BIOS flashing'
+      ok: socketMatch,
+      label: socketMatch ? 'Processor fits Motherboard' : 'Socket Incompatibility Warning',
+      desc: socketMatch
+        ? `${cpu?.name || 'Processor'} (${cpu?.socket || 'AM5'}) natively matches ${mobo?.name || 'Motherboard'}`
+        : `Selected CPU (${cpu?.socket}) does not physically match motherboard socket (${mobo?.socket})`
     },
     {
-      ok: true,
-      label: 'Memory runs at full speed',
-      desc: 'DDR5 6000MHz EXPO profile fully supported by B650 motherboard'
+      ok: ramMatch,
+      label: ramMatch ? 'Memory runs at full speed' : 'Memory Type Mismatch',
+      desc: ramMatch
+        ? `${ram?.name || 'DDR5'} profile fully supported by motherboard memory slots`
+        : `Selected RAM is ${ram?.type} while Motherboard supports ${mobo?.ramType}`
     },
     {
-      ok: true,
-      label: 'Graphics card fits inside case',
-      desc: '242mm card length has 128mm room to spare in the chassis'
+      ok: gpuMargin >= 0,
+      label: gpuMargin >= 0 ? 'Graphics card fits inside case' : 'GPU exceeds chassis max length',
+      desc: gpuMargin >= 0
+        ? `${gpuLen}mm card length leaves ${gpuMargin}mm room to spare in the chassis`
+        : `Card length (${gpuLen}mm) exceeds case max allowance (${maxGpu}mm)`
     },
     {
-      ok: true,
-      label: 'CPU cooler fits easily',
-      desc: '155mm cooler height leaves 8mm safety margin from the glass side panel'
+      ok: coolerMargin >= 0,
+      label: coolerMargin >= 0 ? 'CPU cooler fits easily' : 'Cooler too tall for case',
+      desc: coolerMargin >= 0
+        ? `${coolerH}mm cooler height leaves ${coolerMargin}mm safety margin from glass panel`
+        : `Cooler height (${coolerH}mm) exceeds case limit (${maxCooler}mm)`
     },
     {
-      ok: true,
-      isInfo: true,
-      label: 'Power supply has healthy headroom',
-      desc: '438W peak gaming draw is at 67% capacity (optimal 50-70% efficiency curve)'
+      ok: psuLoadPct <= 100,
+      isInfo: psuLoadPct <= 75,
+      label: psuLoadPct <= 75 ? 'Power supply has healthy headroom' : psuLoadPct <= 100 ? 'PSU at high capacity' : 'PSU Underpowered',
+      desc: `${currentPower}W peak gaming draw is at ${psuLoadPct}% of ${psuWatt}W capacity (${psu?.rating || '80+ Bronze'})`
     },
     {
       ok: true,
@@ -199,35 +227,35 @@ export const BuilderView = () => {
     }
   ] : [
     {
-      ok: true,
-      label: 'Socket AM5 Native Match (LGA 1718)',
-      desc: 'Exact pinout alignment for Ryzen 7000/9000 series'
+      ok: socketMatch,
+      label: `Socket ${cpu?.socket || 'AM5'} Native Alignment`,
+      desc: `Exact pinout alignment for ${cpu?.name || 'Processor'}`
     },
     {
-      ok: true,
-      label: 'DDR5-6000 CL30 EXPO Profile',
-      desc: '1.35V target operating voltage verified on QVL'
+      ok: ramMatch,
+      label: `${ram?.type || 'DDR5'} Memory Bus Verified`,
+      desc: `${ram?.speed || '6000 MHz'} operating profile verified on motherboard chipset`
     },
     {
-      ok: true,
-      label: 'GPU Clearance: 242mm / 370mm Max',
-      desc: '128mm delta margin for front radiator or airflow'
+      ok: gpuMargin >= 0,
+      label: `GPU Clearance: ${gpuLen}mm / ${maxGpu}mm Max`,
+      desc: `${gpuMargin}mm delta margin for front radiator or airflow`
     },
     {
-      ok: true,
-      label: 'Cooler Height: 155mm / 163mm Max',
-      desc: '8mm clearance margin to tempered glass panel'
+      ok: coolerMargin >= 0,
+      label: `Cooler Height: ${coolerH}mm / ${maxCooler}mm Max`,
+      desc: `${coolerMargin}mm clearance margin to tempered glass panel`
     },
     {
-      ok: true,
-      isInfo: true,
-      label: 'PSU Headroom: 438W / 650W (67% Load)',
-      desc: 'Operates within peak efficiency curve of 80+ Bronze spec'
+      ok: psuLoadPct <= 100,
+      isInfo: psuLoadPct <= 75,
+      label: `PSU Headroom: ${currentPower}W / ${psuWatt}W (${psuLoadPct}% Load)`,
+      desc: `Operates within efficiency curve of ${psu?.rating || '80+ Bronze'} spec`
     },
     {
       ok: true,
       label: 'Motherboard Dual M.2 PCIe 4.0 x4',
-      desc: 'Direct CPU lanes + B650 chipset lanes available'
+      desc: 'Direct CPU lanes + chipset lanes available'
     },
     {
       ok: true,
@@ -642,10 +670,10 @@ export const BuilderView = () => {
                   Estimated Power
                 </div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-blue)' }} className="tabular-nums">
-                  {currentPower}W <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>/ 650W</span>
+                  {currentPower}W <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>/ {psuWatt}W</span>
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  67% PSU Load (Sweet Spot)
+                <div style={{ fontSize: '11px', color: psuLoadPct <= 80 ? 'var(--text-secondary)' : 'var(--status-warning)' }}>
+                  {psuLoadPct}% PSU Load ({psuLoadPct <= 75 ? 'Optimal Headroom' : psuLoadPct <= 100 ? 'Operating Fine' : 'High Load'})
                 </div>
               </div>
 
@@ -660,10 +688,10 @@ export const BuilderView = () => {
                   GPU Memory (VRAM)
                 </div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-purple-text)' }}>
-                  12GB GDDR7
+                  {gpu?.vram || 'Dedicated VRAM'}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  DLSS 4, Ray Tracing & Local AI
+                  {gpu ? 'DirectX 12, Ray Tracing & Local AI' : 'No GPU Selected'}
                 </div>
               </div>
             </div>

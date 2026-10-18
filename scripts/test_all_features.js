@@ -3,7 +3,7 @@
 // Verifies all data schemas, compatibility rules, services, calculations, and views
 // ==============================================================================
 
-import { COMPONENT_CATALOG, CANONICAL_BUILD, FEATURED_BUILDS, FORMAT_INR } from '../src/data/mockData.js';
+import { COMPONENT_CATALOG, CANONICAL_BUILD, FEATURED_BUILDS, FORMAT_INR, calculateComponentEQ } from '../src/data/mockData.js';
 import { equipmentService } from '../src/services/equipmentService.js';
 import { buildService } from '../src/services/buildService.js';
 import { SUPABASE_HOST, SUPABASE_PORT, SUPABASE_USER, SUPABASE_DB, SUPABASE_URL } from '../src/lib/supabase.js';
@@ -95,6 +95,14 @@ async function runTestSuite() {
   assert(SUPABASE_USER === 'postgres', `User verified: ${SUPABASE_USER}`);
   assert(SUPABASE_DB === 'postgres', `Database verified: ${SUPABASE_DB}`);
   assert(SUPABASE_URL === 'https://nuxmpdleqpqunkhbpqjj.supabase.co', `API URL verified: ${SUPABASE_URL}`);
+
+  // TEST SUITE 7: EFFICIENCY QUOTIENT (EQ) ENGINE
+  console.log('\n--- TEST SUITE 7: Efficiency Quotient (EQ) Engine ---');
+  const gpuEQ = calculateComponentEQ(gpu, 'gpu');
+  assert(gpuEQ && typeof gpuEQ.score === 'number' && gpuEQ.score >= 1.0 && gpuEQ.score <= 9.9, `GPU EQ Score calculated: ${gpuEQ.score}/10`);
+  assert(['A+', 'A', 'B', 'C'].includes(gpuEQ.grade), `GPU EQ Grade assigned: ${gpuEQ.grade}`);
+  const cpuEQ = calculateComponentEQ(cpu, 'cpu');
+  assert(cpuEQ && typeof cpuEQ.score === 'number', `CPU EQ Score calculated: ${cpuEQ.score}/10 (${cpuEQ.grade})`);
 
   console.log('\n======================================================');
   console.log(`   TEST EXECUTION COMPLETE: ${passed} PASSED | ${failed} FAILED`);
