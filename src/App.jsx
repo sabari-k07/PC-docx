@@ -7,6 +7,7 @@ import { ComponentPickerDrawer } from './components/ComponentPickerDrawer';
 import { BudgetOptimizerModal } from './components/BudgetOptimizerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { AIChatDrawer } from './components/AIChatDrawer';
+import './App.css';
 
 // Route-Level Code Splitting (React.lazy)
 const LandingView = lazy(() => import('./views/LandingView').then(m => ({ default: m.LandingView })));

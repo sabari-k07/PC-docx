@@ -1,0 +1,16 @@
+/* PC_DOCx App.css - Linear / Vercel dark-mode design tokens & utilities */
+@import './index.css';
+
+.pc-docx-app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.health-panel-container {
+  position: sticky;
+  top: 84px;
+}
